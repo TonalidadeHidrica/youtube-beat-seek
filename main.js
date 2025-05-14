@@ -38,6 +38,16 @@
         localStorage.setItem(storageKey(videoId), JSON.stringify(data));
     };
 
+    const setMessage = (msg) => {
+        const el = document.getElementById('beatSeekMessage');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.backgroundColor = '#ffff99'; // light yellow
+        setTimeout(() => {
+            el.style.backgroundColor = 'transparent';
+        }, 50);
+    };
+
     const createUI = async () => {
         const videoId = getVideoId();
         const settings = loadSettings(videoId);
@@ -71,6 +81,11 @@
         offsetInput.style.width = '50px';
         offsetInput.value = settings.offset;
 
+        const messageContainer = document.createElement('span');
+        messageContainer.id = 'beatSeekMessage';
+        messageContainer.style.marginLeft = '10px';
+        messageContainer.style.transition = 'background-color 0.1s';
+
         const save = () => {
             saveSettings(videoId, bpmInput.value, offsetInput.value);
         };
@@ -82,6 +97,7 @@
         container.appendChild(bpmInput);
         container.appendChild(offsetLabel);
         container.appendChild(offsetInput);
+        container.appendChild(messageContainer);
 
         while (true) {
             const titleContainer = document.querySelector('#above-the-fold #title');
@@ -108,15 +124,18 @@
             const beatDuration = 60 / bpm * beatsPerJump;
             const currentTime = player.getCurrentTime();
             const epsilon = 0.01;
-            let newTime;
 
+            let newBeat;
             if (event.key === "]") {
-                newTime = Math.ceil((currentTime - offset + epsilon) / beatDuration) * beatDuration + offset;
-                player.seekTo(newTime, true);
+                newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration);
             } else if (event.key === "[") {
-                newTime = Math.floor((currentTime - offset - epsilon) / beatDuration) * beatDuration + offset;
-                player.seekTo(newTime, true);
+                newBeat = Math.floor((currentTime - offset - epsilon) / beatDuration);
+            } else {
+                return;
             }
+            const newTime = newBeat * beatDuration + offset;
+            player.seekTo(newTime, true);
+            setMessage(`Seek to ${Math.floor(newBeat / 4 + 1e-3)}:${newBeat % 4}`);
         });
     };
 
