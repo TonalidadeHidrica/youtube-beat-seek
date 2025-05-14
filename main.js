@@ -111,6 +111,7 @@
     };
 
     let lastPrevious = Number.NEGATIVE_INFINITY;
+    let marker = null;
 
     const addKeyboardListener = () => {
         document.addEventListener('keydown', (event) => {
@@ -127,20 +128,30 @@
             const currentTime = player.getCurrentTime();
             const epsilon = 0.01;
 
-            let newBeat;
-            if (event.key === "]") {
-                newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration / beatsPerJump) * beatsPerJump;
-                lastPrevious = Number.NEGATIVE_INFINITY;
-            } else if (event.key === "[") {
-                const repeatBonus = (event.timeStamp - lastPrevious) < 700 ? 1 : 0;
-                lastPrevious = event.timeStamp;
-                newBeat = (Math.floor((currentTime - offset - epsilon) / beatDuration / beatsPerJump) - repeatBonus) * beatsPerJump;
-            } else {
-                return;
+            if (event.key === "[" || event.key === "]") {
+                let newBeat;
+                if (event.key === "]") {
+                    newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration / beatsPerJump) * beatsPerJump;
+                    lastPrevious = Number.NEGATIVE_INFINITY;
+                } else if (event.key === "[") {
+                    const repeatBonus = (event.timeStamp - lastPrevious) < 700 ? 1 : 0;
+                    lastPrevious = event.timeStamp;
+                    newBeat = (Math.floor((currentTime - offset - epsilon) / beatDuration / beatsPerJump) - repeatBonus) * beatsPerJump;
+                }
+                const newTime = newBeat * beatDuration + offset;
+                player.seekTo(newTime, true);
+                setMessage(`Seek to ${Math.floor(newBeat / 4 + 1e-3)}:${newBeat % 4}`);
+            } else if (event.key == "e") {
+                marker = currentTime;
+                setMessage(`Marker set`);
+            } else if (event.key == "q") {
+                if (marker !== null) {
+                    player.pauseVideo();
+                    player.seekTo(marker, true);
+                } else {
+                    setMessage(`Marker not set!`);
+                }
             }
-            const newTime = newBeat * beatDuration + offset;
-            player.seekTo(newTime, true);
-            setMessage(`Seek to ${Math.floor(newBeat / 4 + 1e-3)}:${newBeat % 4}`);
         });
     };
 
