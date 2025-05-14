@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         YouTube Beat Seek
+// @name         YouTube Beat Seek (Persistent)
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Seek YouTube player by beats using BPM and offset
+// @version      1.3
+// @description  Seek YouTube player by beats using BPM and offset; stores settings per video
 // @author       You
 // @match        https://www.youtube.com/watch?v=*
 // @grant        none
@@ -11,8 +11,37 @@
 (() => {
     'use strict';
 
-    // Create UI elements for BPM and Offset
+    const getVideoId = () => {
+        const url = new URL(window.location.href);
+        return url.searchParams.get('v');
+    };
+
+    const storageKey = (videoId) => `beatSeekSettings_${videoId}`;
+
+    const defaultSettings = () => ({ bpm: '', offset: '' });
+
+    const loadSettings = (videoId) => {
+        const stored = localStorage.getItem(storageKey(videoId));
+        if (!stored) return defaultSettings();
+        try {
+            return JSON.parse(stored);
+        } catch {
+            return defaultSettings;
+        }
+    };
+
+    const saveSettings = (videoId, bpm, offset) => {
+        const data = {
+            bpm: bpm || '',
+            offset: offset || ''
+        };
+        localStorage.setItem(storageKey(videoId), JSON.stringify(data));
+    };
+
     const createUI = async () => {
+        const videoId = getVideoId();
+        const settings = loadSettings(videoId);
+
         const container = document.createElement('div');
         container.style.display = 'flex';
         container.style.alignItems = 'center';
@@ -30,6 +59,7 @@
         bpmInput.id = 'bpmInput';
         bpmInput.style.marginRight = '10px';
         bpmInput.style.width = '50px';
+        bpmInput.value = settings.bpm;
 
         const offsetLabel = document.createElement('label');
         offsetLabel.textContent = 'Offset: ';
@@ -39,15 +69,22 @@
         offsetInput.type = 'number';
         offsetInput.id = 'offsetInput';
         offsetInput.style.width = '50px';
+        offsetInput.value = settings.offset;
+
+        const save = () => {
+            saveSettings(videoId, bpmInput.value, offsetInput.value);
+        };
+
+        bpmInput.addEventListener('change', save);
+        offsetInput.addEventListener('change', save);
 
         container.appendChild(bpmLabel);
         container.appendChild(bpmInput);
         container.appendChild(offsetLabel);
         container.appendChild(offsetInput);
 
-        while(true) {
+        while (true) {
             const titleContainer = document.querySelector('#above-the-fold #title');
-            console.log(titleContainer);
             if (titleContainer) {
                 titleContainer.parentNode.insertBefore(container, titleContainer);
                 break;
@@ -57,7 +94,6 @@
         }
     };
 
-    // Add keyboard listener for beat seeking
     const addKeyboardListener = () => {
         document.addEventListener('keydown', (event) => {
             const player = document.getElementById('movie_player');
@@ -69,7 +105,7 @@
             if (isNaN(bpm) || isNaN(offset) || bpm <= 0) return;
 
             const beatsPerJump = event.ctrlKey ? 1 : 4;
-            const beatDuration = 60 / bpm * beatsPerJump; // Duration of the jump in seconds
+            const beatDuration = 60 / bpm * beatsPerJump;
             const currentTime = player.getCurrentTime();
             const epsilon = 0.01;
             let newTime;
@@ -82,15 +118,12 @@
                 player.seekTo(newTime, true);
             }
         });
-        console.log("Added key listener");
     };
 
-    // Initialize the script
     const init = () => {
         createUI();
         addKeyboardListener();
     };
 
-    // Run the script after the page is fully loaded
     window.addEventListener('load', init);
 })();
