@@ -11,9 +11,6 @@
 (() => {
     'use strict';
 
-    // Small epsilon to ensure we move to the next or previous beat
-    const epsilon = 0.01;
-
     // Create UI elements for BPM and Offset
     const createUI = async () => {
         const container = document.createElement('div');
@@ -71,8 +68,10 @@
 
             if (isNaN(bpm) || isNaN(offset) || bpm <= 0) return;
 
-            const beatDuration = 60 / bpm * 4; // Duration of one beat in seconds
+            const beatsPerJump = event.ctrlKey ? 1 : 4;
+            const beatDuration = 60 / bpm * beatsPerJump; // Duration of the jump in seconds
             const currentTime = player.getCurrentTime();
+            const epsilon = 0.01;
             let newTime;
 
             if (event.key === "]") {
