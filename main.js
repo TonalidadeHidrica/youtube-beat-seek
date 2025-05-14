@@ -110,6 +110,8 @@
         }
     };
 
+    let lastPrevious = Number.NEGATIVE_INFINITY;
+
     const addKeyboardListener = () => {
         document.addEventListener('keydown', (event) => {
             const player = document.getElementById('movie_player');
@@ -121,15 +123,18 @@
             if (isNaN(bpm) || isNaN(offset) || bpm <= 0) return;
 
             const beatsPerJump = event.ctrlKey ? 1 : 4;
-            const beatDuration = 60 / bpm * beatsPerJump;
+            const beatDuration = 60 / bpm;
             const currentTime = player.getCurrentTime();
             const epsilon = 0.01;
 
             let newBeat;
             if (event.key === "]") {
-                newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration);
+                newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration / beatsPerJump) * beatsPerJump;
+                lastPrevious = Number.NEGATIVE_INFINITY;
             } else if (event.key === "[") {
-                newBeat = Math.floor((currentTime - offset - epsilon) / beatDuration);
+                const repeatBonus = (event.timeStamp - lastPrevious) < 700 ? 1 : 0;
+                lastPrevious = event.timeStamp;
+                newBeat = (Math.floor((currentTime - offset - epsilon) / beatDuration / beatsPerJump) - repeatBonus) * beatsPerJump;
             } else {
                 return;
             }
