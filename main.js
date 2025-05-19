@@ -18,7 +18,7 @@
 
     const storageKey = (videoId) => `beatSeekSettings_${videoId}`;
 
-    const defaultSettings = () => ({ bpm: '', offset: '' });
+    const defaultSettings = () => ({bpm: '', offset: ''});
 
     const loadSettings = (videoId) => {
         const stored = localStorage.getItem(storageKey(videoId));
@@ -81,6 +81,17 @@
         offsetInput.style.width = '50px';
         offsetInput.value = settings.offset;
 
+        const offsetFromPosition = document.createElement('button');
+        offsetFromPosition.textContent = "< Set current";
+        offsetFromPosition.addEventListener("click", () => {
+            console.log("this");
+            const player = document.getElementById('movie_player');
+            if (!player) return;
+            const currentTime = player.getCurrentTime();
+            offsetInput.value = currentTime.toFixed(3);
+            setMessage("Set offset");
+        });
+
         const messageContainer = document.createElement('span');
         messageContainer.id = 'beatSeekMessage';
         messageContainer.style.marginLeft = '10px';
@@ -97,6 +108,7 @@
         container.appendChild(bpmInput);
         container.appendChild(offsetLabel);
         container.appendChild(offsetInput);
+        container.appendChild(offsetFromPosition);
         container.appendChild(messageContainer);
 
         while (true) {
