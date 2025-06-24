@@ -105,6 +105,7 @@
         const chartSummary = document.createElement('summary');
         chartSummary.textContent = 'Chart';
         const chartBox = document.createElement('textarea');
+        chartBox.id = 'chartBox';
         chartBox.value = settings.chart || '';
         chartBox.style.width = '100%';
         chartBox.style.overflowY = "hidden";
@@ -161,6 +162,7 @@
         const result = [];
         let pos = 0; // current character position in the input text
         let time = 0;
+        let measure = 0;
 
         const lines = text.split('\n');
         for (const line of lines) {
@@ -207,9 +209,10 @@
             const end = pos + i;
 
             for (let j = 0; j < beat; j++) {
-                result.push({ time, currentBeat: j, bpm, beat, start, end });
+                result.push({ time, measure, currentBeat: j, bpm, beat, start, end });
                 time += 60 / bpm;
             }
+            measure += 1;
 
             // skip whitespace
             while (i < trimmedLine.length && /\s/.test(trimmedLine[i])) i++;
@@ -224,11 +227,14 @@
           }
           pos += line.length + 1; // +1 for newline
         }
+        result.push({ time, measure, currentBeat: 0, bpm: 0, beat: 0, start: pos, end: pos });
 
         if (result.length > 0) {
+            // setMessage("Chart parsed");
             chart = result;
             return true;
         } else {
+            // setMessage("Chart empty");
             return false;
         }
     }
@@ -243,24 +249,39 @@
 
             if (isNaN(bpm) || isNaN(offset) || bpm <= 0) return;
 
+            const currentTime = player.getCurrentTime();
             if (event.key === "[" || event.key === "]") {
                 const beatsPerJump = event.ctrlKey ? 1 : 4;
                 const beatDuration = 60 / bpm;
-                const currentTime = player.getCurrentTime();
                 const epsilon = 0.01;
 
                 let newBeat;
-                if (event.key === "]") {
-                    newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration / beatsPerJump) * beatsPerJump;
-                    lastPrevious = Number.NEGATIVE_INFINITY;
-                } else if (event.key === "[") {
-                    const repeatBonus = (event.timeStamp - lastPrevious) < 700 ? 1 : 0;
-                    lastPrevious = event.timeStamp;
-                    newBeat = (Math.floor((currentTime - offset - epsilon) / beatDuration / beatsPerJump) - repeatBonus) * beatsPerJump;
+                if (chart === null) {
+                    if (event.key === "]") {
+                        newBeat = Math.ceil((currentTime - offset + epsilon) / beatDuration / beatsPerJump) * beatsPerJump;
+                        lastPrevious = Number.NEGATIVE_INFINITY;
+                    } else if (event.key === "[") {
+                        const repeatBonus = (event.timeStamp - lastPrevious) < 700 ? 1 : 0;
+                        lastPrevious = event.timeStamp;
+                        newBeat = (Math.floor((currentTime - offset - epsilon) / beatDuration / beatsPerJump) - repeatBonus) * beatsPerJump;
+                    }
+                    const newTime = newBeat * beatDuration + offset;
+                    player.seekTo(newTime, true);
+                    setMessage(`Seek to ${Math.floor(newBeat / 4 + 1e-3)}:${newBeat % 4}`);
+                } else {
+                    let newBeat;
+                    const beatCondition = (beat) => event.ctrlKey || beat.currentBeat === 0;
+                    if (event.key === "]") {
+                        newBeat = chart.find(beat => beat.time > currentTime - offset + epsilon && beatCondition(beat));
+                    } else if (event.key === "[") {
+                        newBeat = chart.slice().reverse().find(beat => beat.time < currentTime - offset - epsilon && beatCondition(beat));
+                    }
+                    if (newBeat !== undefined) {
+                        player.seekTo(newBeat.time + offset, true);
+                        setMessage(`Seek to ${newBeat.measure}:${newBeat.currentBeat}/${newBeat.beat}`);
+                        document.getElementById('chartBox').setSelectionRange(newBeat.start, newBeat.end);
+                    }
                 }
-                const newTime = newBeat * beatDuration + offset;
-                player.seekTo(newTime, true);
-                setMessage(`Seek to ${Math.floor(newBeat / 4 + 1e-3)}:${newBeat % 4}`);
             } else if (event.key == "e") {
                 marker = currentTime;
                 setMessage(`Marker set`);
