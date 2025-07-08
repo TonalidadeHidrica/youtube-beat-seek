@@ -229,7 +229,7 @@
         }
         result.push({ time, measure, currentBeat: 0, bpm: 0, beat: 0, start: pos, end: pos });
 
-        if (result.length > 0) {
+        if (result.length > 1) {
             // setMessage("Chart parsed");
             chart = result;
             return true;
