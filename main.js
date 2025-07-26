@@ -87,7 +87,6 @@
         const offsetFromPosition = document.createElement('button');
         offsetFromPosition.textContent = "< Set current";
         offsetFromPosition.addEventListener("click", () => {
-            console.log("this");
             const player = document.getElementById('movie_player');
             if (!player) return;
             const currentTime = player.getCurrentTime();
@@ -247,7 +246,14 @@
             const bpm = parseFloat(document.getElementById('bpmInput')?.value);
             const offset = parseFloat(document.getElementById('offsetInput')?.value);
 
-            if (isNaN(bpm) || isNaN(offset) || bpm <= 0) return;
+            if (isNaN(offset)) {
+                setMessage("Please set offset");
+                return;
+            }
+            if (chart === null && (isNaN(bpm) || bpm <= 0)) {
+                setMessage("Invalid BPM or chart (at least one of them must be set");
+                return;
+            }
 
             const currentTime = player.getCurrentTime();
             if (event.key === "[" || event.key === "]") {
