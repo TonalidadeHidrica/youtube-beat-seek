@@ -95,44 +95,16 @@
         });
 
         const drawCircle = document.createElement('button');
-        drawCircle.marginLeft = "40px";
+        drawCircle.marginLeft = "50px";
         drawCircle.textContent = "Draw circle";
-        drawCircle.addEventListener("click", () => {
-            const video = document.querySelector('video');
-            if (!video) return;
-            console.log("Trying to draw");
+        drawCircle.addEventListener("click", tryDrawCircle);
 
-            // Avoid adding multiple overlays
-            if (document.getElementById('circle-overlay')) return;
-
-            // Create overlay canvas
-            const canvas = document.createElement('canvas');
-            canvas.id = 'circle-overlay';
-            canvas.style.position = 'absolute';
-            canvas.style.top = '0';
-            canvas.style.left = '0';
-            canvas.style.pointerEvents = 'none'; // Don’t block clicks
-            canvas.style.zIndex = '9999';
-            canvas.width = video.clientWidth;
-            canvas.height = video.clientHeight;
-
-            // Match position of the video
-            const rect = video.getBoundingClientRect();
-            canvas.style.width = `${rect.width}px`;
-            canvas.style.height = `${rect.height}px`;
-            canvas.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
-
-            document.body.appendChild(canvas);
-
-            const ctx = canvas.getContext('2d');
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(378, 326, 240, 0, 2 * Math.PI);
-            ctx.stroke();
-
-            setMessage("Circle drawn");
-        });
+        const circleCoordinatesInput = document.createElement('input');
+        circleCoordinatesInput.type = 'text';
+        circleCoordinatesInput.id = 'circleCoordinatesInput';
+        circleCoordinatesInput.style.width = '100px';
+        circleCoordinatesInput.value = "534 545 390";
+        circleCoordinatesInput.addEventListener('change', tryDrawCircle);
 
         const messageContainer = document.createElement('span');
         messageContainer.id = 'beatSeekMessage';
@@ -177,8 +149,9 @@
         row.appendChild(offsetLabel);
         row.appendChild(offsetInput);
         row.appendChild(offsetFromPosition);
-        row.appendChild(messageContainer);
         row.appendChild(drawCircle);
+        row.appendChild(circleCoordinatesInput);
+        row.appendChild(messageContainer);
         container.appendChild(row);
         container.appendChild(chartContainer);
 
@@ -190,6 +163,80 @@
             } else {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
+        }
+    };
+
+    const tryDrawCircle = () => {
+        const video = document.querySelector('video');
+        if (!video) return;
+        setMessage("Trying to draw");
+
+        const REF_W = 1920, REF_H = 1080;
+
+        // remove old overlay if exists
+        document.getElementById('circle-overlay')?.remove();
+
+        const rect = video.getBoundingClientRect();
+        const videoAspect = rect.width / rect.height;
+        const refAspect = REF_W / REF_H;
+
+        let drawW, drawH, offsetX, offsetY;
+
+        if (videoAspect > refAspect) {
+            // video is wider → height fits, width letterboxed
+            drawH = rect.height;
+            drawW = rect.height * refAspect;
+            offsetX = rect.left + (rect.width - drawW) / 2;
+            offsetY = rect.top;
+        } else {
+            // video is taller → width fits, height letterboxed
+            drawW = rect.width;
+            drawH = rect.width / refAspect;
+            offsetX = rect.left;
+            offsetY = rect.top + (rect.height - drawH) / 2;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'circle-overlay';
+        canvas.style.position = 'absolute';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '9999';
+        canvas.width = drawW;
+        canvas.height = drawH;
+        canvas.style.width = `${drawW}px`;
+        canvas.style.height = `${drawH}px`;
+        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+        document.body.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const scaleX = drawW / REF_W;
+        const scaleY = drawH / REF_H;
+        ctx.scale(scaleX, scaleY);
+
+        let x = null, y = null, r = null;
+        try {
+            [x, y, r] = document.getElementById("circleCoordinatesInput").value.split(" ");
+        } catch (error) {
+            setMessage(`Failed to parse coordinates: ${error}`);
+        }
+
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 4;
+        // ctx.beginPath();
+        // ctx.moveTo(0, 0);
+        // ctx.lineTo(REF_W, REF_H);
+        // ctx.stroke();
+        // ctx.beginPath();
+        // ctx.moveTo(0, REF_H);
+        // ctx.lineTo(REF_W, 0);
+        // ctx.stroke();
+        if (x !== null && y !== null && r !== null) {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            setMessage("Circle drawn");
         }
     };
 
