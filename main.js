@@ -308,4 +308,47 @@
     };
 
     window.addEventListener('load', init);
+
+
+    const drawCircle = () => {
+        console.log("`drawCircle` initiated");
+        const video = document.querySelector('video');
+        if (!video) return;
+        console.log("Trying to draw");
+
+        // Avoid adding multiple overlays
+        if (document.getElementById('circle-overlay')) return;
+
+        // Create overlay canvas
+        const canvas = document.createElement('canvas');
+        canvas.id = 'circle-overlay';
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.pointerEvents = 'none'; // Don’t block clicks
+        canvas.style.zIndex = '9999';
+        canvas.width = video.clientWidth;
+        canvas.height = video.clientHeight;
+
+        // Match position of the video
+        const rect = video.getBoundingClientRect();
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        canvas.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
+
+        document.body.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(378, 326, 240, 0, 2 * Math.PI);
+        ctx.stroke();
+        console.log("Complete drawing");
+    };
+
+    const observer = new MutationObserver(drawCircle);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    drawCircle(); // Try initially
 })();
