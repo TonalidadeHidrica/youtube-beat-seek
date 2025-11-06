@@ -143,6 +143,7 @@
         bpmInput.addEventListener('change', save);
         offsetInput.addEventListener('change', save);
         chartBox.addEventListener('change', save);
+        offsetFromPosition.addEventListener("click", save);
 
         row.appendChild(bpmLabel);
         row.appendChild(bpmInput);
